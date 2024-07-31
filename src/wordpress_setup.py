@@ -891,7 +891,7 @@ def main():
 
         if args.install:
             Actions.make_configs(**options)
-            Actions.install(**options)
+            Actions.install(options['hostname'])
 
         if args.uninstall:
             Actions.uninstall()
