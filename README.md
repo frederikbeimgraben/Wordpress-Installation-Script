@@ -40,7 +40,10 @@ Usage of the script:
     -I: Install the project
     -C: Start Certbot to get a certificate for the domain
     -U: Uninstall the project
+
     -c: Clean the project (remove all files)
+
+    -i: Interactive mode (ask for the following options)
 
     -n: The hostname of the site (default: localhost)
     -p: The port of the site (default: 8080)
