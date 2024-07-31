@@ -862,6 +862,9 @@ def main():
     except AssertionError as e:
         print_log_fancy(Level.ERROR, f'Assertion failed: {e}')
         sys.exit(1)
+    except Exception as e:
+        print_log_fancy(Level.ERROR, f'An error occurred: {e}')
+        sys.exit(1)
 
 
 if __name__ == '__main__':
