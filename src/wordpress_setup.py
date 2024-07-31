@@ -5,7 +5,7 @@
 # email:   frederik@beimgraben.net
 # date:    2024-07-31
 # license: GPL-3.0
-# version: 1.7.0
+# version: 1.8.0
 # =============================================================================
 # Copyright (C) 2024 Frederik Beimgraben
 #
@@ -457,7 +457,8 @@ f"""server {{
             raise AssertionError(f'{hostname}.nginx.conf is a directory')
         
         if os.path.exists(f'{hostname}.nginx.conf') and os.path.isfile(f'{hostname}.nginx.conf'):
-            print_log_fancy(Level.WARN, f'{hostname}.nginx.conf already exists')
+            print_log_fancy(Level.WARN, f'{hostname}.nginx.conf already exists, skipping')
+            return
 
         with open(f'{hostname}.nginx.conf', 'w') as f:
             f.write(Actions.generate_nginx_conf(hostname, host_port, internal_host))
@@ -504,7 +505,8 @@ volumes:
             raise AssertionError('docker-compose.yml is a directory')
         
         if os.path.exists('docker-compose.yml') and os.path.isfile('docker-compose.yml'):
-            print_log_fancy(Level.WARN, 'docker-compose.yml already exists')
+            print_log_fancy(Level.WARN, 'docker-compose.yml already exists, skipping')
+            return
 
         with open('docker-compose.yml', 'w') as f:
             f.write(Actions.generate_docker_compose())
@@ -543,7 +545,8 @@ HOSTNAME={hostname}"""
             raise AssertionError('.env is a directory')
 
         if os.path.exists('.env') and os.path.isfile('.env'):
-            print_log_fancy(Level.WARN, '.env file already exists')
+            print_log_fancy(Level.WARN, '.env file already exists, skipping')
+            return
 
         with open('.env', 'w') as f:
             f.write(Actions.generate_dotenv(hostname, host_port, db_mnt, db_passwd, db_root_passwd))
@@ -819,14 +822,21 @@ f"""Configuration:
         print_log_fancy(Level.SUCCESS, 'Cleanup complete')
 
     @staticmethod
+    def docker_compose_down() -> None:
+        print_log_fancy(Level.INFO, 'Stopping docker containers...')
+
+        if os.system('docker-compose down') != 0:
+            print_log_fancy(Level.ERROR, 'Failed to stop docker containers')
+            sys.exit(1)
+
+        print_log_fancy(Level.SUCCESS, 'Docker containers stopped')
+
+    @staticmethod
     def uninstall(hostname: str) -> None:
         print_log_fancy(Level.INFO, 'Uninstalling...')
 
         # Perform checks
         Checks.perform_checks_exit(
-            Checks.file_exists('.env'),
-            Checks.file_exists('docker-compose.yml'),
-            Checks.file_exists('.gitignore'),
             Checks.file_exists(f'/etc/nginx/sites-available/{hostname}.nginx.conf'),
             Checks.user_is_root,
             Checks.docker,
@@ -838,13 +848,13 @@ f"""Configuration:
 
         try:
             # Stop the containers
-            assert os.system('docker-compose down') == 0
+            Actions.docker_compose_down()
 
             # Remove the nginx configuration
             Actions.revert_nginx_conf(hostname)
 
             # Reload nginx
-            assert os.system('systemctl reload nginx') == 0
+            Actions.restart_nginx()
         except AssertionError:
             print_log_fancy(Level.ERROR, 'Failed to uninstall')
             sys.exit(1)
