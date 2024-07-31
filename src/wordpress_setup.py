@@ -5,7 +5,7 @@
 # email:   frederik@beimgraben.net
 # date:    2024-07-31
 # license: GPL-3.0
-# version: 1.3.0
+# version: 1.4.0
 # =============================================================================
 # Copyright (C) 2024 Frederik Beimgraben
 #
@@ -720,6 +720,14 @@ f"""Configuration:
     def cleanup() -> None:
         print_log_fancy(Level.INFO, 'Cleaning up...')
 
+        print_log_fancy(Level.INFO, 'Stopping docker containers and removing volumes...')
+
+        if os.system('docker-compose down --volumes') != 0:
+            print_log_fancy(Level.ERROR, 'Failed to stop docker containers')
+            sys.exit(1)
+        
+        print_log_fancy(Level.SUCCESS, 'Docker containers stopped and volumes removed')
+        
         os.remove('.env')
         os.remove('docker-compose.yml')
         os.remove('.gitignore')
@@ -730,13 +738,6 @@ f"""Configuration:
 
         print_log_fancy(Level.SUCCESS, 'Files removed')
 
-        print_log_fancy(Level.INFO, 'Stopping docker containers and removing volumes...')
-
-        if os.system('docker-compose down --volumes') != 0:
-            print_log_fancy(Level.ERROR, 'Failed to stop docker containers')
-            sys.exit(1)
-
-        print_log_fancy(Level.SUCCESS, 'Docker containers stopped and volumes removed')
 
         print_log_fancy(Level.SUCCESS, 'Cleanup complete')
 
