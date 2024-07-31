@@ -906,8 +906,10 @@ if __name__ == '__main__':
             Actions.certbot(options['hostname'])
 
         print_log_fancy(Level.SUCCESS, 'All actions completed successfully')
-
     except KeyboardInterrupt:
         print('\n')
         print_log_fancy(Level.ERROR, 'Installation aborted!')
+        sys.exit(1)
+    except AssertionError as e:
+        print_log_fancy(Level.ERROR, f'Assertion failed: {e}')
         sys.exit(1)
