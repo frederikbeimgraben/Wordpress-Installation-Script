@@ -47,8 +47,7 @@ Usage of the script:
     -I: Install the project
     -C: Start Certbot to get a certificate for the domain
     -U: Uninstall the project
-
-    -c: Clean the project (remove all files)
+    -R: Clean the project (remove all files)
 
     -i: Interactive mode (ask for the following options)
     -s: Silent mode (don't show prompts)

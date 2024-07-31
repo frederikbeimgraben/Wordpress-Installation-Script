@@ -5,7 +5,7 @@
 # email:   frederik@beimgraben.net
 # date:    2024-07-31
 # license: GPL-3.0
-# version: 1.5.0
+# version: 1.6.0
 # =============================================================================
 # Copyright (C) 2024 Frederik Beimgraben
 #
@@ -63,17 +63,37 @@ def print_log_fancy(type: Level, message: str) -> None:
     prefix: str
 
     if type == Level.SUCCESS:
-        prefix = '[ \033[32mOK  \033[0m ]'
+        prefix = '[ \033[32m OK \033[0m ]'
     elif type == Level.INFO:
         prefix = '[ INFO ]'
     elif type == Level.WARN:
         prefix = '[ \033[33mWARN\033[0m ]'
     elif type == Level.ERROR:
-        prefix = '[ \033[31mERR \033[0m ]'
+        prefix = '[ \033[31mFAIL\033[0m ]'
     else:
         prefix = '[ ???? ]'
 
     print(f'{prefix} {message}')
+
+def read_dotenv() -> Dict[str, Any]:
+    dotenv: Dict[str, str] = {}
+
+    with open('.env', 'r') as f:
+        for line in f:
+            if line.strip() == '' or line.strip().startswith('#'):
+                continue
+            if line.count('=') != 1:
+                raise AssertionError(f'Invalid line in .env file: {line}')
+            key, value = [s.strip() for s in line.split('=')]
+            dotenv[key] = value
+
+    for key in ['DB_MNT', 'DB_ROOT_PASSWD', 'DB_PASSWD', 'HOST_PORT', 'HOSTNAME']:
+        if key not in dotenv:
+            raise AssertionError(f'Missing key in .env file: {key}')
+        dotenv[key.lower()] = dotenv[key]
+        del dotenv[key]
+
+    return dotenv
 
 class CheckMode(Enum):
     THROW_ERROR = 1
@@ -405,7 +425,7 @@ class Actions:
     @staticmethod
     def generate_nginx_conf(
             hostname: str = 'localhost',
-            port: int = 8080,
+            host_port: int = 8080,
             internal_host: str = '127.0.0.1'
         ) -> str:
         return \
@@ -414,15 +434,15 @@ f"""server {{
     server_name {hostname};
 
     location / {{
-        proxy_pass http://{internal_host}:{port};
-        proxy_redirect http://{internal_host}:{port} https://{hostname};
+        proxy_pass http://{internal_host}:{host_port};
+        proxy_redirect http://{internal_host}:{host_port} https://{hostname};
 
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
         proxy_set_header Host $host;
 
-        proxy_cookie_domain http://{internal_host}:{port} {hostname};
+        proxy_cookie_domain http://{internal_host}:{host_port} {hostname};
         proxy_set_header X-Forwarded-Proto https;
     }}
 }}"""
@@ -430,11 +450,17 @@ f"""server {{
     @staticmethod
     def create_nginx_conf(
             hostname: str = 'localhost',
-            port: int = 8080,
+            host_port: int = 8080,
             internal_host: str = 'localhost'
         ) -> None:
+        if os.path.exists(f'{hostname}.nginx.conf') and os.path.isdir(f'{hostname}.nginx.conf'):
+            raise AssertionError(f'{hostname}.nginx.conf is a directory')
+        
+        if os.path.exists(f'{hostname}.nginx.conf') and os.path.isfile(f'{hostname}.nginx.conf'):
+            print_log_fancy(Level.WARN, f'{hostname}.nginx.conf already exists')
+
         with open(f'{hostname}.nginx.conf', 'w') as f:
-            f.write(Actions.generate_nginx_conf(hostname, port, internal_host))
+            f.write(Actions.generate_nginx_conf(hostname, host_port, internal_host))
         print_log_fancy(Level.SUCCESS, 'Nginx configuration created')
 
     @staticmethod
@@ -474,6 +500,12 @@ volumes:
 
     @staticmethod
     def create_docker_compose() -> None:
+        if os.path.exists('docker-compose.yml') and os.path.isdir('docker-compose.yml'):
+            raise AssertionError('docker-compose.yml is a directory')
+        
+        if os.path.exists('docker-compose.yml') and os.path.isfile('docker-compose.yml'):
+            print_log_fancy(Level.WARN, 'docker-compose.yml already exists')
+
         with open('docker-compose.yml', 'w') as f:
             f.write(Actions.generate_docker_compose())
         print_log_fancy(Level.SUCCESS, 'Docker Compose configuration created')
@@ -481,55 +513,83 @@ volumes:
     @staticmethod
     def generate_dotenv(
             hostname: str = 'localhost',
-            port: int = 8080,
-            mnt_folder: str = 'db_data',
+            host_port: int = 8080,
+            db_mnt: str = 'db_data',
             db_passwd: Optional[str] = None,
-            db_passwd_root: Optional[str] = None
+            db_root_passwd: Optional[str] = None
         ) -> str:
         # Create a safe password for the database
         if db_passwd is None:
             db_passwd = secrets.token_urlsafe(16)
-        if db_passwd_root is None:
-            db_passwd_root = secrets.token_urlsafe(16)
+        if db_root_passwd is None:
+            db_root_passwd = secrets.token_urlsafe(16)
 
         return \
-f"""DB_MNT={mnt_folder}
-DB_ROOT_PASSWD={db_passwd}
-DB_PASSWD={db_passwd_root}
-HOST_PORT={port}
+f"""DB_MNT={db_mnt}
+DB_ROOT_PASSWD={db_root_passwd}
+DB_PASSWD={db_passwd}
+HOST_PORT={host_port}
 HOSTNAME={hostname}"""
 
     @staticmethod
     def create_dotenv(
             hostname: str = 'localhost',
-            port: int = 8080,
-            mnt_folder: str = 'db_data',
+            host_port: int = 8080,
+            db_mnt: str = 'db_data',
             db_passwd: Optional[str] = None,
-            db_passwd_root: Optional[str] = None
+            db_root_passwd: Optional[str] = None
         ) -> None:
+        if os.path.exists('.env') and os.path.isdir('.env'):
+            raise AssertionError('.env is a directory')
+
+        if os.path.exists('.env') and os.path.isfile('.env'):
+            print_log_fancy(Level.WARN, '.env file already exists')
+
         with open('.env', 'w') as f:
-            f.write(Actions.generate_dotenv(hostname, port, mnt_folder, db_passwd, db_passwd_root))
+            f.write(Actions.generate_dotenv(hostname, host_port, db_mnt, db_passwd, db_root_passwd))
         print_log_fancy(Level.SUCCESS, '.env file created')
 
     @staticmethod
-    def generate_dotgitignore(mnt_folder) -> str:
+    def generate_dotgitignore(db_mnt) -> str:
         return \
-f"""
-# Ignore the database data folder
-{mnt_folder}/"""
+f"""# Ignore the database data folder
+{db_mnt}/"""
 
     @staticmethod
-    def create_dotgitignore(mnt_folder) -> None:
-        with open('.gitignore', 'w') as f:
-            f.write(Actions.generate_dotgitignore(mnt_folder))
+    def create_dotgitignore(db_mnt) -> None:
+        if os.path.exists('.gitignore') and os.path.isdir('.gitignore'):
+            raise AssertionError('.gitignore is a directory')
+
+        if os.path.exists('.gitignore') and os.path.isfile('.gitignore'):
+            # Check if the folder is already ignored
+            with open('.gitignore', 'r') as f:
+                if db_mnt in f.read():
+                    print_log_fancy(Level.WARN, 'Database mount folder already ignored')
+                    return
+            
+            with open('.gitignore', 'a') as f:
+                print_log_fancy(Level.INFO, 'Appending to .gitignore')
+                f.write('\n' + Actions.generate_dotgitignore(db_mnt))
+        else:
+            with open('.gitignore', 'w') as f:
+                f.write(Actions.generate_dotgitignore(db_mnt))
+
         print_log_fancy(Level.SUCCESS, '.gitignore created')
 
     @staticmethod
     def git_init() -> None:
+        if os.path.exists('.git') and os.path.isdir('.git'):
+            print_log_fancy(Level.WARN, 'Git repository already exists')
+            return
+
         os.system('git init')
 
     @staticmethod
     def remove_git() -> None:
+        if not os.path.exists('.git') or not os.path.isdir('.git'):
+            print_log_fancy(Level.WARN, 'No .git folder found to remove')
+            return
+
         os.system('rm -rf .git')
         print_log_fancy(Level.SUCCESS, 'Removed .git')
 
@@ -594,8 +654,6 @@ f"""
             except (ValueError, AssertionError):
                 print_log_fancy(Level.ERROR, 'Invalid input')
 
-        print_log_fancy(Level.INFO, f'Got input: {return_value}')
-
         return return_value
 
     # Refactor of interactive()
@@ -603,53 +661,64 @@ f"""
     def configure_interactive(defaults: Dict[str, Any]) -> Dict[str, Any]:
         # Get values
         hostname: str = Actions.get_user_input(str, 'Hostname', defaults['hostname'], regex=HOSTNAME_REGEX)
-        port: int = Actions.get_user_input(int, 'Port', defaults['port'], regex=PORT_REGEX)
-        mnt_folder: str = Actions.get_user_input(str, 'Mount folder', defaults['mnt_folder'], regex=PATH_REGEX)
+        host_port: int = Actions.get_user_input(int, 'host_port', defaults['host_port'], regex=PORT_REGEX)
+        db_mnt: str = Actions.get_user_input(str, 'Mount folder', defaults['db_mnt'], regex=PATH_REGEX)
 
         db_passwd: str = Actions.get_user_input(str, 'Database password', defaults['db_passwd'])
-        db_passwd_root: str = Actions.get_user_input(str, 'Database root password', defaults['db_passwd_root'])
+        db_root_passwd: str = Actions.get_user_input(str, 'Database root password', defaults['db_root_passwd'])
 
         return {
             'hostname': hostname,
-            'port': port,
-            'mnt_folder': mnt_folder,
+            'host_port': host_port,
+            'db_mnt': db_mnt,
             'db_passwd': db_passwd,
-            'db_passwd_root': db_passwd_root
+            'db_root_passwd': db_root_passwd
         }
 
     @staticmethod
-    def configure(args: argparse.Namespace) -> Dict[str, Any]:
+    def configure(args: argparse.Namespace, install: False) -> Dict[str, Any]:
         # Get CLI arguments
         existing = {
             'hostname': args.hostname,
-            'port': args.port,
-            'mnt_folder': args.mnt_folder,
+            'host_port': args.host_port,
+            'db_mnt': args.db_mnt,
             'db_passwd': secrets.token_urlsafe(16) if args.db_passwd is None else args.db_passwd,
-            'db_passwd_root': secrets.token_urlsafe(16) if args.db_passwd_root is None else args.db_passwd_root
+            'db_root_passwd': secrets.token_urlsafe(16) if args.db_root_passwd is None else args.db_root_passwd
         }
 
+        # Check .env file exists and is a file
+        if os.path.exists('.env') and os.path.isfile('.env'):
+            print_log_fancy(Level.INFO, '.env file found!')
+
+            existing = read_dotenv()
+
+            print_log_fancy(Level.SUCCESS, 'Read .env file')
+
+        existing['host_port'] = int(existing['host_port'])
+        
         # Get interactive values
         if args.interactive:
             print_log_fancy(Level.INFO, 'Entering interactive mode...')
             existing = Actions.configure_interactive(existing)
 
-        print_log_fancy(Level.INFO, \
+        if os.path.exists('.env') or install:
+            print_log_fancy(Level.INFO, \
 f"""Configuration:
 \t\tHostname:     {existing['hostname']}
-\t\tPort:         {existing['port']}
-\t\tMount folder: {existing['mnt_folder']}
+\t\tPort:         {existing['host_port']}
+\t\tMount folder: {existing['db_mnt']}
 \t\tDB password:  {existing['db_passwd']}
-\t\tDB root pass: {existing['db_passwd_root']}""")
+\t\tDB root pass: {existing['db_root_passwd']}""")
         
         return existing
 
     @staticmethod
     def make_configs(
             hostname: str,
-            port: int,
-            mnt_folder: str,
+            host_port: int,
+            db_mnt: str,
             db_passwd: str,
-            db_passwd_root: str
+            db_root_passwd: str
         ) -> None:
         Checks.perform_checks_exit(
             Checks.current_folder_writeable,
@@ -658,11 +727,11 @@ f"""Configuration:
 
         print_log_fancy(Level.INFO, 'Generating files...')
 
-        Actions.create_dotgitignore(mnt_folder)
+        Actions.create_dotgitignore(db_mnt)
         Actions.git_init()
         Actions.create_docker_compose()
-        Actions.create_dotenv(hostname, port, mnt_folder, db_passwd, db_passwd_root)
-        Actions.create_nginx_conf(hostname, port)
+        Actions.create_dotenv(hostname, host_port, db_mnt, db_passwd, db_root_passwd)
+        Actions.create_nginx_conf(hostname, host_port)
 
         print_log_fancy(Level.SUCCESS, 'Files generated')
 
@@ -731,9 +800,14 @@ f"""Configuration:
         
         print_log_fancy(Level.SUCCESS, 'Docker containers stopped and volumes removed')
         
-        os.remove('.env')
-        os.remove('docker-compose.yml')
-        os.remove('.gitignore')
+        if os.path.exists('.env') and os.path.isfile('.env'):
+            os.remove('.env')
+        if os.path.exists('docker-compose.yml') and os.path.isfile('docker-compose.yml'):
+            os.remove('docker-compose.yml')
+        if os.path.exists('.gitignore') and os.path.isfile('.gitignore'):
+            os.remove('.gitignore')
+
+        Actions.remove_git()
 
         for file in os.listdir('.'):
             if file.endswith('.nginx.conf'):
@@ -819,23 +893,23 @@ argparser.add_argument('-n', '--hostname', help='Hostname for the site', default
 # Port: -p or --port
 # Default: 8080
 # Conflicts with: N/A
-argparser.add_argument('-p', '--port', help='Port for the site', default=PORT, type=int)
-# Mount folder: -m or --mnt_folder
+argparser.add_argument('-p', '--host-port', help='Port for the site', default=PORT, type=int)
+# Mount folder: -m or --db_mnt
 # Default: db_data
 # Conflicts with: N/A
-argparser.add_argument('-m', '--mnt_folder', help='Folder to mount the database', default=MNT_FOLDER)
+argparser.add_argument('-m', '--db-mnt', help='Folder to mount the database', default=MNT_FOLDER)
 # Database password: -d or --db_passwd
 # Default: <random> (None)
 # Conflicts with: N/A
-argparser.add_argument('-d', '--db_passwd', help='Database password', default=DB_PASSWD)
-# Database root password: -r or --db_passwd_root
+argparser.add_argument('-d', '--db-passwd', help='Database password', default=DB_PASSWD)
+# Database root password: -r or --db_root_passwd
 # Default: <random> (None)
 # Conflicts with: N/A
-argparser.add_argument('-r', '--db_passwd_root', help='Database root password', default=DB_PASSWD_ROOT)
+argparser.add_argument('-r', '--db-root-passwd', help='Database root password', default=DB_PASSWD_ROOT)
 # Cleanup: -c or --cleanup
 # Default: False
 # Conflicts with: -U
-argparser.add_argument('-c', '--cleanup', action='store_true', help='Cleanup the project')
+argparser.add_argument('-R', '--cleanup', action='store_true', help='Cleanup the project')
 # Install: -i or --install
 # Default: False
 # Conflicts with: -U
@@ -865,7 +939,9 @@ def main():
         if args.silent:
             SILENT = True
 
-        options = Actions.configure(args)
+        without_options = not any((args.install, args.uninstall, args.certbot, args.cleanup))
+
+        options = Actions.configure(args, args.install or without_options)
 
         Checks.conflicting_args(
             args.install,
@@ -877,7 +953,7 @@ def main():
             args.certbot
         )
 
-        if not any((args.install, args.uninstall, args.certbot, args.cleanup)):
+        if without_options:
             Actions.make_configs(**options)
 
         if args.cleanup and not args.uninstall:
