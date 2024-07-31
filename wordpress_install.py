@@ -22,7 +22,7 @@ Create a docker compose project for a wordpress site running behind a nginx
 reverse proxy
 
 Usage of the script:
-    python3 make_wp_compose_project.py [ { -I [ -C ] | -U } ] [ -n <hostname> ] [ -p <port> ] [ -m <mount_folder> ] [ -d <db_passwd> ] [ -r <db_passwd_root> ]
+    python3 wordpress_install.py [ { -I [ -C ] | -U } ] [ -n <hostname> ] [ -p <port> ] [ -m <mount_folder> ] [ -d <db_passwd> ] [ -r <db_passwd_root> ]
 
     [no action options]:
         Create configuration files for a new project in the current directory
