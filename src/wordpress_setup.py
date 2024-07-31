@@ -5,7 +5,7 @@
 # email:   frederik@beimgraben.net
 # date:    2024-07-31
 # license: GPL-3.0
-# version: 1.8.0
+# version: 1.9.0
 # =============================================================================
 # Copyright (C) 2024 Frederik Beimgraben
 #
@@ -707,11 +707,11 @@ f"""# Ignore the database data folder
         if os.path.exists('.env') or install:
             print_log_fancy(Level.INFO, \
 f"""Configuration:
-\t\tHostname:     {existing['hostname']}
-\t\tPort:         {existing['host_port']}
-\t\tMount folder: {existing['db_mnt']}
-\t\tDB password:  {existing['db_passwd']}
-\t\tDB root pass: {existing['db_root_passwd']}""")
+       > Hostname:     {existing['hostname']}
+       > Port:         {existing['host_port']}
+       > Mount folder: {existing['db_mnt']}
+       > DB password:  {existing['db_passwd']}
+       > DB root pass: {existing['db_root_passwd']}""")
         
         return existing
 
