@@ -154,7 +154,6 @@ def check(
 
     def interactive_handler(result: bool, message: Optional[str]) -> bool:
         if not SILENT and mode == CheckMode.THROW_WARN and not result:
-            print_log_fancy(Level.WARN, message if message is not None else 'Check failed')
             if input('Do you want to continue? [y/N]: ').lower() != 'y':
                 print_log_fancy(Level.ERROR, 'Aborted by user')
                 return False
