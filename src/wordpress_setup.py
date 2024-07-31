@@ -5,7 +5,7 @@
 # email:   frederik@beimgraben.net
 # date:    2024-07-31
 # license: GPL-3.0
-# version: 1.4.0
+# version: 1.5.0
 # =============================================================================
 # Copyright (C) 2024 Frederik Beimgraben
 #
@@ -383,7 +383,10 @@ class Actions:
         print_log_fancy(Level.INFO, 'Reverting Nginx configuration...')
 
         # Remove the symlink
-        os.remove(f'/etc/nginx/sites-enabled/{hostname}.nginx.conf')
+        try:
+            os.remove(f'/etc/nginx/sites-enabled/{hostname}.nginx.conf')
+        except:
+            pass
 
         # Remove the file
         os.remove(f'/etc/nginx/sites-available/{hostname}.nginx.conf')
@@ -764,11 +767,6 @@ f"""Configuration:
 
         hostname = Actions.get_hostname_from_dotenv()
 
-        target_files = [
-            f'/etc/nginx/sites-available/{hostname}.nginx.conf',
-            f'/etc/nginx/sites-enabled/{hostname}.nginx.conf'
-        ]
-
         # Perform checks
         Checks.perform_checks_exit(
             Checks.file_exists('.env'),
@@ -782,11 +780,6 @@ f"""Configuration:
             Checks.nginx,
             Checks.systemd
         )
-
-        # Delete target files
-        for file in target_files:
-            if os.path.exists(file):
-                os.remove(file)
 
         try:
             # Stop the containers
