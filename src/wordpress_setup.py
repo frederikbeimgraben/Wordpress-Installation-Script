@@ -5,7 +5,7 @@
 # email:   frederik@beimgraben.net
 # date:    2024-07-31
 # license: GPL-3.0
-# version: 1.2.0
+# version: 1.3.0
 # =============================================================================
 # Copyright (C) 2024 Frederik Beimgraben
 #
