@@ -23,7 +23,7 @@
 # Compile the script to an executable using Cython:
 make
 # Copy the executable to a folder in your PATH (e.g. /usr/local/bin):
-sudo cp wordpress-install /usr/local/bin/
+sudo cp wordpress_install /usr/local/bin/
 ```
 
 # WHAT IS THIS?
@@ -32,7 +32,7 @@ This is a script to create a docker-compose project for a wordpress site with a 
 # Usage
 ```txt
 Usage of the script:
-    python3 make_wp_compose_project.py [ { -I [ -C ] | -U } ] [ -n <hostname> ] [ -p <port> ] [ -m <mount_folder> ] [ -d <db_passwd> ] [ -r <db_passwd_root> ]
+    wordpress_install [ { -I [ -C ] | -U } ] [ -n <hostname> ] [ -p <port> ] [ -m <mount_folder> ] [ -d <db_passwd> ] [ -r <db_passwd_root> ]
 
     [no action options]:
         Create configuration files for a new project in the current directory
