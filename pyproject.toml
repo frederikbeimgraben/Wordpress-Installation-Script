@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wordpress-docker-setup"
+version = "1.0.1"
+authors = [
+  { name="Frederik Beimgraben", email="frederik@beimgraben.net" },
+]
+maintainers = [
+  { name="Frederik Beimgraben", email="frederik@beimgraben.net" },
+]
+description = "This is a script to create a docker-compose project for a wordpress site with a nginx reverse proxy. The script will create the configuration files for the project and start the containers as well as install the nginx reverse proxy configuration. *See the usage section for more information.*"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: Console",
+    "Natural Language :: English"
+]
+keywords = [
+    "wordpress",
+    "docker",
+    "nginx",
+    "reverse proxy",
+    "script",
+    "setup",
+    "configuration"
+]
+dependencies = [
+    "requests",
+    "argparse"
+]
+
+[project.urls]
+Homepage = "https://github.com/frederikbeimgraben/Wordpress-Installation-Script"
+Repository = "https://github.com/frederikbeimgraben/Wordpress-Installation-Script"
+Issues = "https://github.com/frederikbeimgraben/Wordpress-Installation-Script/issues"
+
+[project.scripts]
+wordpress-setup = "wordpress_setup:main"

@@ -1,8 +1,10 @@
 # Compile the python script into an executable using Cython
 
-TARGET_FILE=wordpress_install.py
-TARGET_C_FILE=build/$(patsubst %.py,%.c,$(TARGET_FILE))
-TARGET_O_FILE=build/$(patsubst %.py,%,$(TARGET_FILE))
+TARGET_PATH=src/wordpress_setup.py
+# Get file name without directory
+TARGET_NAME=$(notdir $(TARGET_PATH))
+TARGET_C_FILE=build/$(patsubst %.py,%.c,$(TARGET_NAME))
+TARGET_O_FILE=build/$(patsubst %.py,%,$(TARGET_NAME))
 
 PYTHONLIBVER=python$(shell python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')$(shell python3-config --abiflags)
 
@@ -20,7 +22,7 @@ test_cython_installed:
 
 compile_cython:
 	@echo "Compiling the python script into an executable using Cython..."
-	@cython -3 --embed $(TARGET_FILE) -o $(TARGET_C_FILE)
+	@cython -3 --embed $(TARGET_PATH) -o $(TARGET_C_FILE)
 	@echo "Compilation successful."
 
 compile_c:
@@ -30,5 +32,5 @@ compile_c:
 
 clean:
 	@echo "Cleaning up..."
-	@rm -f $(TARGET_FILE:.py=.c)
+	@rm -f $(TARGET_PATH:.py=.c)
 	@echo "Cleanup successful."

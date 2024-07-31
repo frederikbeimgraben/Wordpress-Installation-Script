@@ -5,7 +5,7 @@
 # email:   frederik@beimgraben.net
 # date:    2024-07-31
 # license: GPL-3.0
-# version: 1.0.0
+# version: 1.0.1
 # =============================================================================
 # Copyright (C) 2024 Frederik Beimgraben
 #
@@ -809,7 +809,7 @@ argparser.add_argument('-U', '--uninstall', action='store_true', help='Uninstall
 # Don't show prompts
 argparser.add_argument('-s', '--silent', action='store_true', help='Silent mode')
 
-if __name__ == '__main__':
+def main():
     try:
         args = argparser.parse_args()
 
@@ -862,3 +862,7 @@ if __name__ == '__main__':
     except AssertionError as e:
         print_log_fancy(Level.ERROR, f'Assertion failed: {e}')
         sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

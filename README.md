@@ -19,11 +19,18 @@
 > ```
 
 ## Installation
+### Using Makefile and Cython
 ```bash
 # Compile the script to an executable using Cython:
 make
 # Copy the executable to a folder in your PATH (e.g. /usr/local/bin):
 sudo cp wordpress_install /usr/local/bin/
+```
+
+### From PyPI
+```bash
+# Install the script from PyPI:
+pip install wordpress-docker-setup
 ```
 
 # WHAT IS THIS?
@@ -32,7 +39,7 @@ This is a script to create a docker-compose project for a wordpress site with a 
 # Usage
 ```txt
 Usage of the script:
-    wordpress_install [ { -I [ -C ] | -U } ] [ -n <hostname> ] [ -p <port> ] [ -m <mount_folder> ] [ -d <db_passwd> ] [ -r <db_passwd_root> ]
+    python3 wordpress_setup.py [ { -I [ -C ] | -U } ] [ -n <hostname> ] [ -p <port> ] [ -m <mount_folder> ] [ -d <db_passwd> ] [ -r <db_passwd_root> ]
 
     [no action options]:
         Create configuration files for a new project in the current directory
