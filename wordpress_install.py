@@ -152,7 +152,7 @@ def check(
 
         return False
 
-    def interactive_handler(result: bool, message: Optional[str]) -> bool:
+    def interactive_handler(result: bool) -> bool:
         if not SILENT and mode == CheckMode.THROW_WARN and not result:
             if input('Do you want to continue? [y/N]: ').lower() != 'y':
                 print_log_fancy(Level.ERROR, 'Aborted by user')
@@ -201,8 +201,7 @@ def check(
 
             return throw_handler(
                 interactive_handler(
-                    check_result,
-                    message
+                    check_result
                 ),
                 message
             )
