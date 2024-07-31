@@ -5,7 +5,7 @@
 # email:   frederik@beimgraben.net
 # date:    2024-07-31
 # license: GPL-3.0
-# version: 1.1.0
+# version: 1.2.0
 # =============================================================================
 # Copyright (C) 2024 Frederik Beimgraben
 #
@@ -368,11 +368,15 @@ class Actions:
             os.remove(f'/etc/nginx/sites-enabled/{hostname}.nginx.conf')
         os.symlink(f'/etc/nginx/sites-available/{hostname}.nginx.conf', f'/etc/nginx/sites-enabled/{hostname}.nginx.conf')
 
+        print_log_fancy(Level.SUCCESS, 'Nginx configuration installed')
+
     @staticmethod
     def restart_nginx() -> None:
         print_log_fancy(Level.INFO, 'Restarting Nginx...')
 
         os.system('systemctl restart nginx')
+
+        print_log_fancy(Level.SUCCESS, 'Nginx restarted')
 
     @staticmethod
     def revert_nginx_conf(hostname: str) -> None:
@@ -381,12 +385,19 @@ class Actions:
         # Remove the symlink
         os.remove(f'/etc/nginx/sites-enabled/{hostname}.nginx.conf')
 
+        # Remove the file
+        os.remove(f'/etc/nginx/sites-available/{hostname}.nginx.conf')
+
+        print_log_fancy(Level.SUCCESS, 'Nginx configuration reverted')
+
     @staticmethod
     def create_sites_if_not_exists() -> None:
         if not os.path.exists('/etc/nginx/sites-available'):
             os.mkdir('/etc/nginx/sites-available')
+            print_log_fancy(Level.INFO, 'Created sites-available')
         if not os.path.exists('/etc/nginx/sites-enabled'):
             os.mkdir('/etc/nginx/sites-enabled')
+            print_log_fancy(Level.INFO, 'Created sites-enabled')
 
     @staticmethod
     def generate_nginx_conf(
@@ -421,6 +432,7 @@ f"""server {{
         ) -> None:
         with open(f'{hostname}.nginx.conf', 'w') as f:
             f.write(Actions.generate_nginx_conf(hostname, port, internal_host))
+        print_log_fancy(Level.SUCCESS, 'Nginx configuration created')
 
     @staticmethod
     def generate_docker_compose() -> str:
@@ -461,6 +473,7 @@ volumes:
     def create_docker_compose() -> None:
         with open('docker-compose.yml', 'w') as f:
             f.write(Actions.generate_docker_compose())
+        print_log_fancy(Level.SUCCESS, 'Docker Compose configuration created')
 
     @staticmethod
     def generate_dotenv(
@@ -493,6 +506,7 @@ HOSTNAME={hostname}"""
         ) -> None:
         with open('.env', 'w') as f:
             f.write(Actions.generate_dotenv(hostname, port, mnt_folder, db_passwd, db_passwd_root))
+        print_log_fancy(Level.SUCCESS, '.env file created')
 
     @staticmethod
     def generate_dotgitignore(mnt_folder) -> str:
@@ -505,10 +519,16 @@ f"""
     def create_dotgitignore(mnt_folder) -> None:
         with open('.gitignore', 'w') as f:
             f.write(Actions.generate_dotgitignore(mnt_folder))
+        print_log_fancy(Level.SUCCESS, '.gitignore created')
 
     @staticmethod
     def git_init() -> None:
         os.system('git init')
+
+    @staticmethod
+    def remove_git() -> None:
+        os.system('rm -rf .git')
+        print_log_fancy(Level.SUCCESS, 'Removed .git')
 
     @staticmethod
     def convert_argument(
@@ -548,11 +568,6 @@ f"""
             regex: Optional[str] = None
         ) -> Any:
 
-        def test_regex(input: str) -> bool:
-            if regex is None:
-                return True
-            return re.match(regex, input) is not None
-
         return_value: Any = None
 
         # Get user input, check and retry if necessary
@@ -575,6 +590,8 @@ f"""
                 break
             except (ValueError, AssertionError):
                 print_log_fancy(Level.ERROR, 'Invalid input')
+
+        print_log_fancy(Level.INFO, f'Got input: {return_value}')
 
         return return_value
 
@@ -610,7 +627,17 @@ f"""
 
         # Get interactive values
         if args.interactive:
+            print_log_fancy(Level.INFO, 'Entering interactive mode...')
             existing = Actions.configure_interactive(existing)
+
+        print_log_fancy(Level.INFO, \
+f"""Configuration:
+\t\tHostname:     {existing['hostname']}
+\t\tPort:         {existing['port']}
+\t\tMount folder: {existing['mnt_folder']}
+\t\tDB password:  {existing['db_passwd']}
+\t\tDB root pass: {existing['db_passwd_root']}""")
+        
         return existing
 
     @staticmethod
@@ -626,20 +653,23 @@ f"""
             Checks.not_already_configured
         )
 
+        print_log_fancy(Level.INFO, 'Generating files...')
+
         Actions.create_dotgitignore(mnt_folder)
         Actions.git_init()
         Actions.create_docker_compose()
         Actions.create_dotenv(hostname, port, mnt_folder, db_passwd, db_passwd_root)
         Actions.create_nginx_conf(hostname, port)
 
+        print_log_fancy(Level.SUCCESS, 'Files generated')
+
     @staticmethod
     def install(
-            hostname: str,
-            port: int,
-            mnt_folder: str,
-            db_passwd: str,
-            db_passwd_root: str
+            hostname: str
         ) -> None:
+
+        print_log_fancy(Level.INFO, 'Installing...')
+
         required_files = ['docker-compose.yml', '.env', f'{hostname}.nginx.conf']
 
         Checks.perform_checks_exit(
@@ -684,6 +714,8 @@ f"""
         Actions.restart_nginx()
         print_log_fancy(Level.SUCCESS, 'Nginx reloaded')
 
+        print_log_fancy(Level.SUCCESS, 'Installation complete')
+
     @staticmethod
     def cleanup() -> None:
         print_log_fancy(Level.INFO, 'Cleaning up...')
@@ -696,18 +728,39 @@ f"""
             if file.endswith('.nginx.conf'):
                 os.remove(file)
 
+        print_log_fancy(Level.SUCCESS, 'Files removed')
+
+        print_log_fancy(Level.INFO, 'Stopping docker containers and removing volumes...')
+
+        if os.system('docker-compose down --volumes') != 0:
+            print_log_fancy(Level.ERROR, 'Failed to stop docker containers')
+            sys.exit(1)
+
+        print_log_fancy(Level.SUCCESS, 'Docker containers stopped and volumes removed')
+
         print_log_fancy(Level.SUCCESS, 'Cleanup complete')
 
     @staticmethod
     def get_hostname_from_dotenv() -> str:
+        print_log_fancy(Level.INFO, 'Getting hostname from .env...')
+
         with open('.env', 'r') as f:
             for line in f:
                 if line.startswith('HOSTNAME'):
-                    return line.split('=')[1].strip()
+                    hostname = line.split('=')[1].strip()
+
+                    print_log_fancy(Level.SUCCESS, f'Got hostname: {hostname}')
+
+                    return hostname
+        
+        print_log_fancy(Level.ERROR, 'Failed to get hostname from .env')
+
         raise FileNotFoundError('.env')
 
     @staticmethod
     def uninstall() -> None:
+        print_log_fancy(Level.INFO, 'Uninstalling...')
+
         hostname = Actions.get_hostname_from_dotenv()
 
         target_files = [
@@ -735,8 +788,8 @@ f"""
                 os.remove(file)
 
         try:
-            # Stop and remove the containers
-            assert os.system('docker-compose down --volumes') == 0
+            # Stop the containers
+            assert os.system('docker-compose down') == 0
 
             # Remove the nginx configuration
             Actions.revert_nginx_conf(hostname)
@@ -746,6 +799,8 @@ f"""
         except AssertionError:
             print_log_fancy(Level.ERROR, 'Failed to uninstall')
             sys.exit(1)
+
+        print_log_fancy(Level.SUCCESS, 'Uninstall complete')
 
     @staticmethod
     def certbot(hostname: str) -> None:
