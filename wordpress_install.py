@@ -83,13 +83,12 @@ import argparse
 import readline
 import socket
 import time
-from typing_extensions import Union
 import requests
 import subprocess
 import shutil
 import functools
 import re
-from typing import Any, List, Optional, Callable, Tuple, Dict, Type, TypeVar
+from typing import Any, List, Optional, Callable, Tuple, Dict, Type, TypeVar, Union
 
 # Constants:
 HOSTNAME = 'localhost'
