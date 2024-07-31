@@ -5,7 +5,7 @@
 # email:   frederik@beimgraben.net
 # date:    2024-07-31
 # license: GPL-3.0
-# version: 1.6.0
+# version: 1.7.0
 # =============================================================================
 # Copyright (C) 2024 Frederik Beimgraben
 #
@@ -819,27 +819,8 @@ f"""Configuration:
         print_log_fancy(Level.SUCCESS, 'Cleanup complete')
 
     @staticmethod
-    def get_hostname_from_dotenv() -> str:
-        print_log_fancy(Level.INFO, 'Getting hostname from .env...')
-
-        with open('.env', 'r') as f:
-            for line in f:
-                if line.startswith('HOSTNAME'):
-                    hostname = line.split('=')[1].strip()
-
-                    print_log_fancy(Level.SUCCESS, f'Got hostname: {hostname}')
-
-                    return hostname
-        
-        print_log_fancy(Level.ERROR, 'Failed to get hostname from .env')
-
-        raise FileNotFoundError('.env')
-
-    @staticmethod
-    def uninstall() -> None:
+    def uninstall(hostname: str) -> None:
         print_log_fancy(Level.INFO, 'Uninstalling...')
-
-        hostname = Actions.get_hostname_from_dotenv()
 
         # Perform checks
         Checks.perform_checks_exit(
@@ -964,7 +945,7 @@ def main():
             Actions.install(options['hostname'])
 
         if args.uninstall:
-            Actions.uninstall()
+            Actions.uninstall(options['hostname'])
 
             if args.cleanup:
                 Actions.cleanup()
