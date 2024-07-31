@@ -167,9 +167,17 @@ def check(
             return Level.WARN if not result else Level.SUCCESS
 
     def decorator(func: Callable[..., Union[Tuple[bool, str], bool]]) -> Callable[..., bool]:
+        if not callable(func):
+            # If staticmethod or classmethod is used, get the function
+            if isinstance(func, staticmethod) or isinstance(func, classmethod):
+                func = func.__func__
+            else:
+                raise AssertionError('Invalid function')
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> bool:
             check_result = func(*args, **kwargs)
+
             message: Optional[str] = None
 
             if isinstance(check_result, tuple):
@@ -199,7 +207,7 @@ def check(
         return wrapper
     return decorator
 
-class Checks:
+class Checks(object):
     @staticmethod
     @check(CheckMode.THROW_WARN, print_success=True)
     def not_already_configured() -> Tuple[bool, str]:
@@ -628,9 +636,6 @@ f"""
         port: int = Actions.get_user_input(int, 'Port', defaults['port'], regex=PORT_REGEX)
         mnt_folder: str = Actions.get_user_input(str, 'Mount folder', defaults['mnt_folder'], regex=PATH_REGEX)
 
-        defaults['db_passwd'] = secrets.token_urlsafe(16) if defaults['db_passwd'] is None else defaults['db_passwd']
-        defaults['db_passwd_root'] = secrets.token_urlsafe(16) if defaults['db_passwd_root'] is None else defaults['db_passwd_root']
-
         db_passwd: str = Actions.get_user_input(str, 'Database password', defaults['db_passwd'])
         db_passwd_root: str = Actions.get_user_input(str, 'Database root password', defaults['db_passwd_root'])
 
@@ -649,8 +654,8 @@ f"""
             'hostname': args.hostname,
             'port': args.port,
             'mnt_folder': args.mnt_folder,
-            'db_passwd': args.db_passwd,
-            'db_passwd_root': args.db_passwd_root
+            'db_passwd': secrets.token_urlsafe(16) if args.db_passwd is None else args.db_passwd,
+            'db_passwd_root': secrets.token_urlsafe(16) if args.db_passwd_root is None else args.db_passwd_root
         }
 
         # Get interactive values
