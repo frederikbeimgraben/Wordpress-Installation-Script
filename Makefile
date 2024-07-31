@@ -1,6 +1,6 @@
 # Compile the python script into an executable using Cython
 
-TARGET_FILE=make_wp_compose_project.py
+TARGET_FILE=wordpress-install.py
 TARGET_C_FILE=build/$(patsubst %.py,%.c,$(TARGET_FILE))
 TARGET_O_FILE=build/$(patsubst %.py,%,$(TARGET_FILE))
 
