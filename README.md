@@ -44,6 +44,7 @@ Usage of the script:
     -c: Clean the project (remove all files)
 
     -i: Interactive mode (ask for the following options)
+    -s: Silent mode (don't show prompts)
 
     -n: The hostname of the site (default: localhost)
     -p: The port of the site (default: 8080)

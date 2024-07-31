@@ -34,6 +34,7 @@ Usage of the script:
     -c: Clean the project (remove all files)
 
     -i: Interactive mode (ask for the following options)
+    -s: Silent mode (don't show prompts)
 
     -n: The hostname of the site (default: localhost)
     -p: The port of the site (default: 8080)
@@ -91,11 +92,13 @@ import re
 from typing import Any, Optional, Callable, Tuple, Dict, Union
 
 # Constants:
-HOSTNAME = 'localhost'
-PORT = 8080
-MNT_FOLDER = 'db_data'
-DB_PASSWD = None
-DB_PASSWD_ROOT = None
+HOSTNAME: str = 'localhost'
+PORT: int = 8080
+MNT_FOLDER: str = 'db_data'
+DB_PASSWD: Optional[str] = None
+DB_PASSWD_ROOT: Optional[str] = None
+
+SILENT: bool = False
 
 HOSTNAME_REGEX: str = r'^([a-zA-Z0-9]+\.)*[a-zA-Z0-9]+$'
 PORT_REGEX: str = r'^[0-9]{1,5}$'
@@ -150,7 +153,7 @@ def check(
         return False
 
     def interactive_handler(result: bool, message: Optional[str]) -> bool:
-        if interactive and mode == CheckMode.THROW_WARN and not result:
+        if not SILENT and mode == CheckMode.THROW_WARN and not result:
             print_log_fancy(Level.WARN, message if message is not None else 'Check failed')
             if input('Do you want to continue? [y/N]: ').lower() != 'y':
                 print_log_fancy(Level.ERROR, 'Aborted by user')
@@ -166,7 +169,7 @@ def check(
         elif mode == CheckMode.THROW_WARN:
             return Level.WARN if not result else Level.SUCCESS
 
-    def decorator(func: Callable[..., Union[Tuple[bool, str], bool]]) -> Callable[..., bool]:
+    def decorator(func: Union[Callable[..., Union[Tuple[bool, str], bool]], staticmethod, classmethod]) -> Callable[..., bool]:
         if not callable(func):
             # If staticmethod or classmethod is used, get the function
             if isinstance(func, staticmethod) or isinstance(func, classmethod):
@@ -815,38 +818,56 @@ f"""
 argparser = argparse.ArgumentParser(description='Create a docker compose project for a wordpress site running behind a reverse proxy')
 # Hostname: -n or --hostname
 # Default: localhost
+# Conflicts with: N/A
 argparser.add_argument('-n', '--hostname', help='Hostname for the site', default=HOSTNAME)
 # Port: -p or --port
 # Default: 8080
+# Conflicts with: N/A
 argparser.add_argument('-p', '--port', help='Port for the site', default=PORT, type=int)
 # Mount folder: -m or --mnt_folder
 # Default: db_data
+# Conflicts with: N/A
 argparser.add_argument('-m', '--mnt_folder', help='Folder to mount the database', default=MNT_FOLDER)
 # Database password: -d or --db_passwd
 # Default: <random> (None)
+# Conflicts with: N/A
 argparser.add_argument('-d', '--db_passwd', help='Database password', default=DB_PASSWD)
 # Database root password: -r or --db_passwd_root
 # Default: <random> (None)
+# Conflicts with: N/A
 argparser.add_argument('-r', '--db_passwd_root', help='Database root password', default=DB_PASSWD_ROOT)
 # Cleanup: -c or --cleanup
 # Default: False
+# Conflicts with: -U
 argparser.add_argument('-c', '--cleanup', action='store_true', help='Cleanup the project')
 # Install: -i or --install
 # Default: False
+# Conflicts with: -U
 argparser.add_argument('-I', '--install', action='store_true', help='Install the project')
 # Interactive: -I or --interactive
 # Default: False
+# Conflicts with: N/A
 argparser.add_argument('-i', '--interactive', action='store_true', help='Interactive mode')
 # Certbot: -C or --certbot
 # Default: False
+# Conflicts with: N/A
 argparser.add_argument('-C', '--certbot', action='store_true', help='Install certbot')
 # Uninstall: -U or --uninstall
 # Default: False
+# Conflicts with: -I, -C
 argparser.add_argument('-U', '--uninstall', action='store_true', help='Uninstall the project')
+# Silent: -s or --silent
+# Default: False
+# Conflicts with: N/A
+# Don't show prompts
+argparser.add_argument('-s', '--silent', action='store_true', help='Silent mode')
 
 if __name__ == '__main__':
     try:
         args = argparser.parse_args()
+
+        if args.silent:
+            SILENT = True
 
         options = Actions.configure(args)
 
